@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindful Minute</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS Variables for Dynamic Theming */
+        :root {
+            --bg-from: #8B5CF6; /* Default purple-400 */
+            --bg-to: #4F46E5;   /* Default indigo-600 */
+            --progress-color: #6D28D9; /* Default deep purple */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, var(--bg-from), var(--bg-to));
+            transition: background 0.8s ease-in-out; /* Smooth transition for background */
+        }
+
+        /* Custom CSS for breathing animation */
+        @keyframes breathe-in {
+            0% { transform: scale(0.6); opacity: 0.7; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.6); opacity: 0.7; }
+        }
+
+        .breathing-ball {
+            animation: breathe-in 8s ease-in-out infinite; /* Default 4s in, 4s out = 8s cycle */
+        }
+
+        .breathing-ball.pace-slow { animation-duration: 10s; }
+        .breathing-ball.pace-medium { animation-duration: 8s; }
+        .breathing-ball.pace-fast { animation-duration: 6s; }
+
+        /* Custom scrollbar styling for quote container */
+        .quote-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .quote-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .quote-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .quote-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Progress ring styling */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s linear; /* Smooth transition for progress */
+            transform: rotate(-90deg); /* Start from top */
+            transform-origin: 50% 50%; /* Rotate around center */
+            stroke: var(--progress-color); /* Use CSS variable for color */
+        }
+
+        /* Modal specific styles */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        .typewriter-text {
+            overflow: hidden; /* Ensures the text is hidden until typed */
+            white-space: nowrap; /* Keeps the content on a single line */
+            border-right: .15em solid orange; /* The typewriter cursor */
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+
+        /* Typewriter animation */
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        /* The typewriter cursor effect */
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: orange; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white bg-opacity-90 rounded-3xl shadow-2xl p-8 max-w-lg w-full flex flex-col items-center space-y-8">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-4 text-center">Mindful Minute</h1>
+
+        <!-- Focus Mode Selector -->
+        <div class="flex flex-wrap justify-center gap-3 w-full">
+            <button id="gratitude-btn" class="focus-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105" data-mode="gratitude">Gratitude</button>
+            <button id="calm-btn" class="focus-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105" data-mode="calm">Calm</button>
+            <button id="reset-btn" class="focus-btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105" data-mode="reset">Reset</button>
+            <button id="energize-btn" class="focus-btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105" data-mode="energize">Energize</button>
+            <button id="sleep-prep-btn" class="focus-btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105" data-mode="sleep-prep">Sleep Prep</button>
+        </div>
+
+        <!-- Duration, Breathing Pace, Sound, Speech Controls -->
+        <div class="flex flex-wrap justify-center gap-4 w-full items-center">
+            <label for="duration-select" class="text-gray-700 font-semibold">Duration:</label>
+            <select id="duration-select" class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="60">1 Minute</option>
+                <option value="180">3 Minutes</option>
+                <option value="300">5 Minutes</option>
+            </select>
+
+            <label for="pace-select" class="text-gray-700 font-semibold">Pace:</label>
+            <select id="pace-select" class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="medium">Default (4-4)</option>
+                <option value="slow">Slow (4-7-8)</option>
+                <option value="fast">Fast (3-3)</option>
+            </select>
+
+            <label for="sound-select" class="text-gray-700 font-semibold">Sound:</label>
+            <select id="sound-select" class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="calm_music">Calm Music</option>
+                <option value="nature_rain">Rain</option>
+                <option value="nature_ocean">Ocean</option>
+                <option value="nature_forest">Forest</option>
+                <option value="tibetan_bowls">Tibetan Bowls</option>
+                <option value="silence">Silence</option>
+            </select>
+
+            <div class="flex gap-2">
+                <button id="speech-toggle-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-full shadow-lg flex items-center justify-center transition duration-300 ease-in-out transform hover:scale-105" title="Toggle Speech">
+                    <svg id="speech-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </button>
+                <button id="sound-toggle-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-full shadow-lg flex items-center justify-center transition duration-300 ease-in-out transform hover:scale-105" title="Toggle Sound">
+                    <svg id="sound-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 0 010 7.072m2.828-9.9a9 0 010 12.728M5.586 15H4a1 1 0 01-1-1V9a1 1 0 011-1h1.586l4.707-4.707C10.923 3.647 11 4.1 11 5v14c0 .9-.077 1.353-.293 1.569l-4.707-4.707z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Breathing Ball Color Selection -->
+        <div class="flex flex-wrap justify-center gap-2 w-full">
+            <label class="text-gray-700 font-semibold mr-2">Ball Color:</label>
+            <button class="color-btn w-8 h-8 rounded-full shadow-md transition duration-200 ease-in-out transform hover:scale-110" style="background: linear-gradient(to bottom right, #8B5CF6, #EC4899);" data-color-from="#8B5CF6" data-color-to="#EC4899" title="Purple to Pink"></button>
+            <button class="color-btn w-8 h-8 rounded-full shadow-md transition duration-200 ease-in-out transform hover:scale-110" style="background: linear-gradient(to bottom right, #3B82F6, #06B6D4);" data-color-from="#3B82F6" data-color-to="#06B6D4" title="Blue to Cyan"></button>
+            <button class="color-btn w-8 h-8 rounded-full shadow-md transition duration-200 ease-in-out transform hover:scale-110" style="background: linear-gradient(to bottom right, #10B981, #14B8A6);" data-color-from="#10B981" data-color-to="#14B8A6" title="Green to Teal"></button>
+            <button class="color-btn w-8 h-8 rounded-full shadow-md transition duration-200 ease-in-out transform hover:scale-110" style="background: linear-gradient(to bottom right, #F97316, #FBBF24);" data-color-from="#F97316" data-color-to="#FBBF24" title="Orange to Yellow"></button>
+        </div>
+
+        <!-- Breathing Ball Animation with Progress Ring -->
+        <div class="relative flex items-center justify-center w-64 h-64">
+            <svg class="absolute w-full h-full" viewBox="0 0 200 200">
+                <circle class="progress-ring__background" stroke="#E0E0E0" stroke-width="8" fill="transparent" r="90" cx="100" cy="100"></circle>
+                <circle id="progress-ring-circle" class="progress-ring__circle" stroke-width="8" fill="transparent" r="90" cx="100" cy="100"></circle>
+            </svg>
+            <div id="breathing-ball" class="breathing-ball rounded-full w-48 h-48 flex items-center justify-center shadow-xl transition-all duration-300 ease-in-out" style="background: linear-gradient(to bottom right, #8B5CF6, #EC4899);">
+                <span id="breathing-text" class="text-white text-2xl font-semibold opacity-0 transition-opacity duration-500"></span>
+            </div>
+            <div id="timer-display" class="absolute text-white text-5xl font-extrabold drop-shadow-lg">01:00</div>
+        </div>
+
+        <!-- Quote Display -->
+        <div id="quote-container" class="bg-gray-100 bg-opacity-70 rounded-xl p-6 w-full h-36 flex items-center justify-center text-center text-gray-700 text-lg italic shadow-inner overflow-y-auto quote-container">
+            <p id="quote-text" class="transition-opacity duration-500 opacity-0"></p>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center justify-center gap-4 w-full">
+            <button id="start-stop-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">Start</button>
+            <button id="view-reflections-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">View Reflections</button>
+        </div>
+
+        <!-- Reflection Modal -->
+        <div id="reflection-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden modal-overlay">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Reflections</h2>
+                <div id="reflections-list" class="max-h-80 overflow-y-auto space-y-3">
+                    <!-- Reflections will be loaded here -->
+                </div>
+                <button id="close-modal-btn" class="mt-6 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out">Close</button>
+            </div>
+        </div>
+
+        <!-- Post-Session Prompt Modal -->
+        <div id="prompt-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden modal-overlay">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4" id="prompt-message"></h2>
+                <textarea id="reflection-input" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" rows="4" placeholder="Type your reflection here..."></textarea>
+                <button id="save-reflection-btn" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out">Save Reflection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration and initialization (not used for this simple app, but included for structure if persistence were added)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        // App State Variables
+        let timerInterval;
+        let quoteInterval;
+        let timeLeft;
+        let initialDuration;
+        let isRunning = false;
+        let isSoundOn = true;
+        let isSpeechOn = false;
+        let currentFocus = 'calm';
+        let breathingPhase = 'inhale';
+        let breathingPace = { inhale: 4, hold1: 0, exhale: 4, hold2: 0, total: 8 }; // Default 4-4
+        let breathingPhaseIndex = 0; // 0: inhale, 1: hold1, 2: exhale, 3: hold2
+        let breathingPhaseTimers = []; // To store setInterval IDs for breathing text
+
+        // DOM Elements
+        const breathingBall = document.getElementById('breathing-ball');
+        const breathingText = document.getElementById('breathing-text');
+        const timerDisplay = document.getElementById('timer-display');
+        const quoteText = document.getElementById('quote-text');
+        const startStopBtn = document.getElementById('start-stop-btn');
+        const soundToggleBtn = document.getElementById('sound-toggle-btn');
+        const soundIcon = document.getElementById('sound-icon');
+        const speechToggleBtn = document.getElementById('speech-toggle-btn');
+        const speechIcon = document.getElementById('speech-icon');
+        const focusButtons = document.querySelectorAll('.focus-btn');
+        const durationSelect = document.getElementById('duration-select');
+        const paceSelect = document.getElementById('pace-select');
+        const soundSelect = document.getElementById('sound-select');
+        const colorButtons = document.querySelectorAll('.color-btn');
+        const progressRingCircle = document.getElementById('progress-ring-circle');
+        const viewReflectionsBtn = document.getElementById('view-reflections-btn');
+        const reflectionModal = document.getElementById('reflection-modal');
+        const reflectionsList = document.getElementById('reflections-list');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const promptModal = document.getElementById('prompt-modal');
+        const promptMessage = document.getElementById('prompt-message');
+        const reflectionInput = document.getElementById('reflection-input');
+        const saveReflectionBtn = document.getElementById('save-reflection-btn');
+
+        // Audio Setup
+        const audioSources = {
+            calm_music: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+            nature_rain: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', // Placeholder
+            nature_ocean: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', // Placeholder
+            nature_forest: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', // Placeholder
+            tibetan_bowls: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', // Placeholder
+            silence: '' // No sound
+        };
+        const audio = new Audio(); // Create audio element
+        audio.loop = true;
+
+        // Speech Synthesis Setup
+        const synth = window.speechSynthesis;
+        let utterance = new SpeechSynthesisUtterance();
+        utterance.lang = 'en-US';
+
+        // Quotes categorized by focus type
+        const quotes = {
+            gratitude: [
+                "Gratitude turns what we have into enough.",
+                "The more grateful I am, the more beauty I see.",
+                "Thankfulness is the beginning of joy.",
+                "Cultivate the habit of being grateful for every good thing that comes to you.",
+                "Gratitude is the fairest blossom which springs from the soul."
+            ],
+            calm: [
+                "Breathe in calm, breathe out chaos.",
+                "Peace begins with a smile.",
+                "Inhale the future, exhale the past.",
+                "Let your mind be still, and the world will be still with you.",
+                "The calmer you are, the clearer you think."
+            ],
+            reset: [
+                "Every moment is a fresh beginning.",
+                "Let go of what no longer serves you.",
+                "You are stronger than you think.",
+                "Press the reset button, start anew.",
+                "A fresh start is a mindset, not a timeline."
+            ],
+            energize: [
+                "Your energy is your greatest asset.",
+                "Awaken the power within.",
+                "Every day is a new opportunity to energize your spirit.",
+                "Feel the surge of life within you.",
+                "Charge your mind, body, and soul."
+            ],
+            'sleep-prep': [
+                "Let go of the day, embrace the night.",
+                "Rest deeply, rise refreshed.",
+                "Quiet your mind, soften your breath.",
+                "Drift into peaceful slumber.",
+                "May your dreams be sweet and your rest be deep."
+            ]
+        };
+
+        // Theme colors for each mode
+        const themeColors = {
+            gratitude: { from: '#FBBF24', to: '#F97316', progress: '#D97706' }, // Yellow to Orange
+            calm: { from: '#60A5FA', to: '#3B82F6', progress: '#2563EB' },     // Light Blue to Blue
+            reset: { from: '#34D399', to: '#10B981', progress: '#059669' },     // Light Green to Green
+            energize: { from: '#F87171', to: '#EF4444', progress: '#DC2626' },   // Light Red to Red
+            'sleep-prep': { from: '#A78BFA', to: '#8B5CF6', progress: '#7C3AED' } // Light Purple to Purple
+        };
+
+        // Progress Ring Constants
+        const radius = progressRingCircle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        progressRingCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressRingCircle.style.strokeDashoffset = circumference;
+
+        // --- Event Listeners ---
+
+        startStopBtn.addEventListener('click', () => {
+            if (isRunning) {
+                stopBreathingSession();
+            } else {
+                startBreathingSession();
+            }
+        });
+
+        soundToggleBtn.addEventListener('click', toggleSound);
+        speechToggleBtn.addEventListener('click', toggleSpeech);
+
+        focusButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const newFocus = button.dataset.mode;
+                setFocusType(newFocus);
+            });
+        });
+
+        durationSelect.addEventListener('change', () => {
+            if (!isRunning) {
+                timeLeft = parseInt(durationSelect.value);
+                initialDuration = timeLeft;
+                timerDisplay.textContent = formatTime(timeLeft);
+                updateProgressRing(1);
+                savePreferences();
+            }
+        });
+
+        paceSelect.addEventListener('change', () => {
+            setBreathingPace(paceSelect.value);
+            savePreferences();
+        });
+
+        soundSelect.addEventListener('change', () => {
+            const selectedSound = soundSelect.value;
+            audio.src = audioSources[selectedSound];
+            if (isRunning && isSoundOn) {
+                audio.play().catch(e => console.error("Audio play failed:", e));
+            }
+            savePreferences();
+        });
+
+        colorButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const colorFrom = button.dataset.colorFrom;
+                const colorTo = button.dataset.colorTo;
+                setBreathingBallColor(colorFrom, colorTo);
+                savePreferences();
+            });
+        });
+
+        viewReflectionsBtn.addEventListener('click', showReflectionsModal);
+        closeModalBtn.addEventListener('click', () => reflectionModal.classList.add('hidden'));
+        saveReflectionBtn.addEventListener('click', saveReflection);
+
+        // Keyboard Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); // Prevent scrolling
+                startStopBtn.click();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                changeFocusMode(-1); // Previous mode
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                changeFocusMode(1); // Next mode
+            }
+        });
+
+        // Touch Gestures for Mode Change
+        let touchStartX = 0;
+        document.body.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+        document.body.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const swipeThreshold = 50; // pixels
+            if (touchStartX - touchEndX > swipeThreshold) {
+                changeFocusMode(1); // Swipe left for next mode
+            } else if (touchEndX - touchStartX > swipeThreshold) {
+                changeFocusMode(-1); // Swipe right for previous mode
+            }
+        });
+
+        // --- Functions ---
+
+        /**
+         * Initializes the app state and UI from localStorage.
+         */
+        function initApp() {
+            loadPreferences(); // Load saved preferences first
+
+            // Set initial focus button styling
+            focusButtons.forEach(button => {
+                if (button.dataset.mode === currentFocus) {
+                    button.classList.add('bg-opacity-100', 'ring-4', 'ring-purple-400');
+                } else {
+                    button.classList.remove('bg-opacity-100', 'ring-4', 'ring-purple-400');
+                }
+            });
+
+            quoteText.classList.remove('opacity-0');
+            quoteText.textContent = "Select a focus and click Start to begin your mindful minute.";
+
+            timeLeft = parseInt(durationSelect.value);
+            initialDuration = timeLeft;
+            timerDisplay.textContent = formatTime(timeLeft);
+
+            updateSoundIcon();
+            updateSpeechIcon();
+            updateProgressRing(1); // Initialize progress ring to full
+            updateTheme(currentFocus); // Apply initial theme
+            setBreathingBallColor(breathingBall.style.background.split(', ')[1].trim(), breathingBall.style.background.split(', ')[2].replace(')', '').trim()); // Set default color
+            setBreathingPace(paceSelect.value); // Apply initial pace
+            preloadAudio(); // Preload all audio files
+            updateSessionTracker(); // Update daily session tracker
+        }
+
+        /**
+         * Preloads all audio files to prevent delay on first play.
+         */
+        function preloadAudio() {
+            for (const key in audioSources) {
+                if (audioSources[key]) {
+                    const preload = new Audio();
+                    preload.src = audioSources[key];
+                    preload.preload = 'auto';
+                }
+            }
+        }
+
+        /**
+         * Starts the mindful minute session.
+         */
+        function startBreathingSession() {
+            if (isRunning) return;
+
+            isRunning = true;
+            startStopBtn.textContent = 'Stop';
+            startStopBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+            startStopBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+
+            timeLeft = parseInt(durationSelect.value);
+            initialDuration = timeLeft;
+            timerDisplay.textContent = formatTime(timeLeft);
+            breathingBall.classList.add('breathing-ball');
+            breathingBall.classList.add(`pace-${paceSelect.value}`); // Apply pace class
+
+            timerInterval = setInterval(updateTimer, 1000);
+
+            startBreathingTextAnimation(); // Start the dynamic breathing text
+
+            displayRandomQuote();
+            quoteInterval = setInterval(displayRandomQuote, 10000);
+
+            if (isSoundOn && audio.src) {
+                audio.play().catch(e => console.error("Audio play failed:", e));
+            }
+        }
+
+        /**
+         * Starts the breathing text animation with dynamic phases.
+         */
+        function startBreathingTextAnimation() {
+            breathingText.classList.remove('opacity-0');
+            breathingPhaseIndex = 0; // Start with inhale
+            updateBreathingText();
+
+            // Clear previous phase timers
+            breathingPhaseTimers.forEach(clearInterval);
+            breathingPhaseTimers = [];
+
+            let currentDelay = 0;
+            const phases = ['Inhale', 'Hold', 'Exhale', 'Hold'];
+            const durations = [
+                breathingPace.inhale,
+                breathingPace.hold1,
+                breathingPace.exhale,
+                breathingPace.hold2
+            ];
+
+            for (let i = 0; i < phases.length; i++) {
+                if (durations[i] > 0) {
+                    const timerId = setTimeout(() => {
+                        breathingPhaseIndex = i;
+                        updateBreathingText();
+                        // Set up the next phase's timer to loop
+                        breathingPhaseTimers.push(setInterval(() => {
+                            breathingPhaseIndex = (breathingPhaseIndex + 1) % phases.length;
+                            updateBreathingText();
+                        }, breathingPace.total * 1000));
+                    }, currentDelay * 1000);
+                    breathingPhaseTimers.push(timerId); // Store initial timeouts too
+                }
+                currentDelay += durations[i];
+            }
+        }
+
+        /**
+         * Updates the breathing text based on the current phase.
+         */
+        function updateBreathingText() {
+            const phases = ['Inhale', 'Hold', 'Exhale', 'Hold'];
+            const currentText = phases[breathingPhaseIndex];
+            breathingText.textContent = currentText;
+            if (isSpeechOn) {
+                if (synth.speaking) synth.cancel();
+                utterance.text = currentText;
+                synth.speak(utterance);
+            }
+        }
+
+        /**
+         * Stops the mindful minute session.
+         */
+        function stopBreathingSession() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            clearInterval(quoteInterval);
+            breathingPhaseTimers.forEach(clearInterval); // Clear all breathing phase timers
+            breathingPhaseTimers = [];
+            audio.pause();
+            audio.currentTime = 0;
+            if (synth.speaking) {
+                synth.cancel();
+            }
+
+            startStopBtn.textContent = 'Start';
+            startStopBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            startStopBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+
+            breathingBall.classList.remove('breathing-ball', 'pace-slow', 'pace-medium', 'pace-fast');
+            breathingBall.style.transform = 'scale(0.6)';
+            breathingText.classList.add('opacity-0');
+
+            timerDisplay.textContent = formatTime(parseInt(durationSelect.value));
+            quoteText.classList.add('opacity-0');
+            setTimeout(() => {
+                quoteText.textContent = "Select a focus and click Start to begin your mindful minute.";
+                quoteText.classList.remove('opacity-0');
+            }, 500);
+
+            updateProgressRing(1); // Reset progress ring to full
+            showPostSessionPrompt(); // Show reflection prompt
+            trackSessionCompletion(); // Track session
+        }
+
+        /**
+         * Updates the timer display and progress ring every second.
+         */
+        function updateTimer() {
+            timeLeft--;
+            timerDisplay.textContent = formatTime(timeLeft);
+
+            const progress = timeLeft / initialDuration;
+            updateProgressRing(progress);
+
+            if (timeLeft <= 0) {
+                stopBreathingSession();
+                timerDisplay.textContent = "Done!";
+                if (isSpeechOn) {
+                    utterance.text = "Session complete. Well done!";
+                    synth.speak(utterance);
+                }
+                setTimeout(() => {
+                    timerDisplay.textContent = formatTime(parseInt(durationSelect.value));
+                }, 2000);
+            }
+        }
+
+        /**
+         * Formats time from seconds to MM:SS.
+         * @param {number} seconds - The time in seconds.
+         * @returns {string} Formatted time string.
+         */
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * Displays a random quote based on the current focus type with typewriter effect.
+         */
+        function displayRandomQuote() {
+            const currentQuotes = quotes[currentFocus];
+            if (currentQuotes && currentQuotes.length > 0) {
+                quoteText.classList.add('opacity-0');
+                setTimeout(() => {
+                    const randomIndex = Math.floor(Math.random() * currentQuotes.length);
+                    const newQuote = currentQuotes[randomIndex];
+
+                    // Typewriter effect
+                    quoteText.textContent = ''; // Clear text
+                    quoteText.classList.add('typewriter-text');
+                    let i = 0;
+                    const speed = 50; // typing speed in ms
+                    function typeWriter() {
+                        if (i < newQuote.length) {
+                            quoteText.textContent += newQuote.charAt(i);
+                            i++;
+                            setTimeout(typeWriter, speed);
+                        } else {
+                            quoteText.classList.remove('typewriter-text'); // Remove cursor after typing
+                        }
+                    }
+                    typeWriter();
+                    quoteText.classList.remove('opacity-0');
+
+                    if (isSpeechOn) {
+                        if (synth.speaking) {
+                            synth.cancel();
+                        }
+                        utterance.text = newQuote;
+                        synth.speak(utterance);
+                    }
+                }, 500);
+            } else {
+                quoteText.textContent = "No quotes available for this focus.";
+                quoteText.classList.remove('opacity-0');
+            }
+        }
+
+        /**
+         * Toggles sound on/off.
+         */
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            if (isSoundOn) {
+                if (isRunning && audio.src) {
+                    audio.play().catch(e => console.error("Audio play failed:", e));
+                }
+            } else {
+                audio.pause();
+            }
+            updateSoundIcon();
+            savePreferences();
+        }
+
+        /**
+         * Updates the sound icon based on the isSoundOn state.
+         */
+        function updateSoundIcon() {
+            if (isSoundOn) {
+                soundIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 0 010 7.072m2.828-9.9a9 0 010 12.728M5.586 15H4a1 1 0 01-1-1V9a1 1 0 011-1h1.586l4.707-4.707C10.923 3.647 11 4.1 11 5v14c0 .9-.077 1.353-.293 1.569l-4.707-4.707z" />`;
+            } else {
+                soundIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 0 010 7.072m2.828-9.9a9 0 010 12.728M9 17.25V12A2.25 2.25 0 006.75 9H5.25A2.25 2.25 0 003 11.25v4.5A2.25 2.25 0 005.25 18h1.5A2.25 2.25 0 009 15.75z" clip-rule="evenodd" /><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5L21 3m-7.5 0v7.5m7.5 0H13.5" />`;
+            }
+        }
+
+        /**
+         * Toggles speech synthesis on/off.
+         */
+        function toggleSpeech() {
+            isSpeechOn = !isSpeechOn;
+            if (!isSpeechOn && synth.speaking) {
+                synth.cancel();
+            }
+            updateSpeechIcon();
+            savePreferences();
+        }
+
+        /**
+         * Updates the speech icon based on the isSpeechOn state.
+         */
+        function updateSpeechIcon() {
+            if (isSpeechOn) {
+                speechIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />`;
+            } else {
+                speechIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10M17 14l-2-2m0 0l-2 2m2-2l2 2m-2-2l-2-2" />`;
+            }
+        }
+
+        /**
+         * Sets the current focus type and updates button styling and theme.
+         * @param {string} type - The new focus type.
+         */
+        function setFocusType(type) {
+            currentFocus = type;
+            focusButtons.forEach(button => {
+                button.classList.remove('bg-opacity-100', 'ring-4', 'ring-purple-400');
+            });
+            document.querySelector(`.focus-btn[data-mode="${type}"]`).classList.add('bg-opacity-100', 'ring-4', 'ring-purple-400');
+
+            updateTheme(type); // Update background theme
+            if (isRunning) {
+                displayRandomQuote();
+            } else {
+                quoteText.classList.add('opacity-0');
+                setTimeout(() => {
+                    quoteText.textContent = `Focus on ${type}. Click Start to begin your mindful minute.`;
+                    quoteText.classList.remove('opacity-0');
+                }, 500);
+            }
+            savePreferences();
+        }
+
+        /**
+         * Cycles through focus modes.
+         * @param {number} direction - 1 for next, -1 for previous.
+         */
+        function changeFocusMode(direction) {
+            const modes = Array.from(focusButtons).map(btn => btn.dataset.mode);
+            let currentIndex = modes.indexOf(currentFocus);
+            currentIndex = (currentIndex + direction + modes.length) % modes.length;
+            setFocusType(modes[currentIndex]);
+        }
+
+        /**
+         * Updates the body background and progress ring color based on the selected mode.
+         * @param {string} mode - The current focus mode.
+         */
+        function updateTheme(mode) {
+            const colors = themeColors[mode];
+            if (colors) {
+                document.documentElement.style.setProperty('--bg-from', colors.from);
+                document.documentElement.style.setProperty('--bg-to', colors.to);
+                document.documentElement.style.setProperty('--progress-color', colors.progress);
+            }
+        }
+
+        /**
+         * Sets the background gradient colors of the breathing ball.
+         * @param {string} fromColor - Hex code for the 'from' color.
+         * @param {string} toColor - Hex code for the 'to' color.
+         */
+        function setBreathingBallColor(fromColor, toColor) {
+            breathingBall.style.background = `linear-gradient(to bottom right, ${fromColor}, ${toColor})`;
+        }
+
+        /**
+         * Sets the breathing pace and updates animation/intervals.
+         * @param {string} paceType - 'slow', 'medium', 'fast'.
+         */
+        function setBreathingPace(paceType) {
+            breathingBall.classList.remove('pace-slow', 'pace-medium', 'pace-fast');
+            breathingBall.classList.add(`pace-${paceType}`);
+
+            switch (paceType) {
+                case 'slow': // 4-7-8 breathing
+                    breathingPace = { inhale: 4, hold1: 7, exhale: 8, hold2: 0, total: 19 };
+                    break;
+                case 'fast': // 3-3 breathing
+                    breathingPace = { inhale: 3, hold1: 0, exhale: 3, hold2: 0, total: 6 };
+                    break;
+                case 'medium': // Default 4-4 breathing
+                default:
+                    breathingPace = { inhale: 4, hold1: 0, exhale: 4, hold2: 0, total: 8 };
+                    break;
+            }
+
+            // If session is running, restart breathing text animation with new pace
+            if (isRunning) {
+                breathingPhaseTimers.forEach(clearInterval);
+                breathingPhaseTimers = [];
+                startBreathingTextAnimation();
+            }
+        }
+
+        /**
+         * Updates the progress ring based on the given percentage.
+         * @param {number} percentage - The progress as a decimal (0 to 1).
+         */
+        function updateProgressRing(percentage) {
+            const offset = circumference * (1 - percentage);
+            progressRingCircle.style.strokeDashoffset = offset;
+        }
+
+        /**
+         * Shows the post-session reflection prompt modal.
+         */
+        function showPostSessionPrompt() {
+            promptMessage.textContent = "Take this peace into your day. What are you grateful for right now?";
+            reflectionInput.value = ''; // Clear previous input
+            promptModal.classList.remove('hidden');
+        }
+
+        /**
+         * Saves the user's reflection to localStorage.
+         */
+        function saveReflection() {
+            const reflection = reflectionInput.value.trim();
+            if (reflection) {
+                const reflections = JSON.parse(localStorage.getItem('mindfulReflections') || '[]');
+                const timestamp = new Date().toLocaleString();
+                reflections.push({ text: reflection, timestamp: timestamp, mode: currentFocus });
+                localStorage.setItem('mindfulReflections', JSON.stringify(reflections));
+            }
+            promptModal.classList.add('hidden');
+        }
+
+        /**
+         * Shows the modal with past reflections.
+         */
+        function showReflectionsModal() {
+            reflectionsList.innerHTML = ''; // Clear previous list
+            const reflections = JSON.parse(localStorage.getItem('mindfulReflections') || '[]');
+
+            if (reflections.length === 0) {
+                reflectionsList.innerHTML = '<p class="text-gray-600 text-center">No reflections saved yet.</p>';
+            } else {
+                reflections.reverse().forEach(r => { // Show most recent first
+                    const reflectionItem = document.createElement('div');
+                    reflectionItem.className = 'bg-gray-50 p-4 rounded-lg shadow-sm';
+                    reflectionItem.innerHTML = `
+                        <p class="text-gray-800 text-base">${r.text}</p>
+                        <p class="text-gray-500 text-sm mt-1">Mode: ${r.mode} | ${r.timestamp}</p>
+                    `;
+                    reflectionsList.appendChild(reflectionItem);
+                });
+            }
+            reflectionModal.classList.remove('hidden');
+        }
+
+        /**
+         * Saves app preferences to localStorage.
+         */
+        function savePreferences() {
+            const preferences = {
+                currentFocus: currentFocus,
+                selectedDuration: durationSelect.value,
+                selectedSound: soundSelect.value,
+                selectedPace: paceSelect.value,
+                isSoundOn: isSoundOn,
+                isSpeechOn: isSpeechOn,
+                ballColorFrom: breathingBall.style.background.split(', ')[1].trim(),
+                ballColorTo: breathingBall.style.background.split(', ')[2].replace(')', '').trim()
+            };
+            localStorage.setItem('mindfulPreferences', JSON.stringify(preferences));
+        }
+
+        /**
+         * Loads app preferences from localStorage.
+         */
+        function loadPreferences() {
+            const preferences = JSON.parse(localStorage.getItem('mindfulPreferences') || '{}');
+
+            if (preferences.currentFocus) {
+                currentFocus = preferences.currentFocus;
+                document.querySelector(`.focus-btn[data-mode="${currentFocus}"]`).click(); // Simulate click to apply styles
+            }
+            if (preferences.selectedDuration) {
+                durationSelect.value = preferences.selectedDuration;
+            }
+            if (preferences.selectedSound) {
+                soundSelect.value = preferences.selectedSound;
+                audio.src = audioSources[preferences.selectedSound];
+            }
+            if (typeof preferences.isSoundOn !== 'undefined') {
+                isSoundOn = preferences.isSoundOn;
+            }
+            if (typeof preferences.isSpeechOn !== 'undefined') {
+                isSpeechOn = preferences.isSpeechOn;
+            }
+            if (preferences.selectedPace) {
+                paceSelect.value = preferences.selectedPace;
+            }
+            if (preferences.ballColorFrom && preferences.ballColorTo) {
+                setBreathingBallColor(preferences.ballColorFrom, preferences.ballColorTo);
+            }
+        }
+
+        /**
+         * Tracks session completion in localStorage for daily reminder and progress.
+         */
+        function trackSessionCompletion() {
+            const today = new Date().toDateString();
+            const sessionData = JSON.parse(localStorage.getItem('mindfulSessions') || '{}');
+
+            if (!sessionData[today]) {
+                sessionData[today] = 0;
+            }
+            sessionData[today]++;
+            localStorage.setItem('mindfulSessions', JSON.stringify(sessionData));
+            updateSessionTracker(); // Update UI after tracking
+        }
+
+        /**
+         * Updates the display for session tracker (e.g., "You've completed X sessions this week!").
+         */
+        function updateSessionTracker() {
+            const sessionData = JSON.parse(localStorage.getItem('mindfulSessions') || '{}');
+            let sessionsThisWeek = 0;
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+            for (const dateStr in sessionData) {
+                const sessionDate = new Date(dateStr);
+                if (sessionDate >= oneWeekAgo) {
+                    sessionsThisWeek += sessionData[dateStr];
+                }
+            }
+            // You can add a dedicated element to display this, e.g., a small text below the controls
+            // For now, let's log it to console or consider adding a dedicated UI element later.
+            console.log(`You've completed ${sessionsThisWeek} sessions this week!`);
+
+            // Example of Notification API for Daily Check-in Reminder (requires user permission)
+            // This would typically be triggered by a separate mechanism, not every session completion.
+            // For demonstration, let's put a simple check here.
+            if (Notification.permission === 'granted') {
+                const lastReminder = localStorage.getItem('lastMindfulReminder');
+                const now = new Date();
+                // Remind once a day
+                if (!lastReminder || (now.getTime() - new Date(lastReminder).getTime()) > (24 * 60 * 60 * 1000)) {
+                    new Notification('Mindful Minute', {
+                        body: 'Time for your daily mindful minute!',
+                        icon: 'https://placehold.co/64x64/000/FFF?text=🧘' // Placeholder icon
+                    });
+                    localStorage.setItem('lastMindfulReminder', now.toISOString());
+                }
+            } else if (Notification.permission !== 'denied') {
+                // Ask for permission if not already denied
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Notification permission granted.');
+                    }
+                });
+            }
+        }
+
+
+        // Initialize the app when the window loads
+        window.onload = initApp;
+    </script>
+</body>
+</html>
